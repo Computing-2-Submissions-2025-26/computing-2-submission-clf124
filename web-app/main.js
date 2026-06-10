@@ -292,7 +292,7 @@ const handle_bear_off = function () {
         render();
     }
 };
-// test
+
 const auto_end_if_needed = function () {
     if (state.phase === "gameover") { return; }
     if (
