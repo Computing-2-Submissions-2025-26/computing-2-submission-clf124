@@ -1,9 +1,135 @@
-<!-- In HTML Comments are written like this -->
-<!-- They can all be removed for your apps -->
-<!doctype html> <!-- This first line tells browsers to expect modern standard html 5 -->
-<html lang="en-gb"> <!-- This is indicates the page is written in British English, useful for accessibility -->
-<meta charset="utf-8"> <!-- This indicates how the file is encoded. utf-8 is standard -->
-<title>Your Web-app Title</title> <!-- All pages need a title, this will be displayed in the browser's title bar -->
-<link rel="stylesheet" href="default.css"> <!-- Import style sheet – default.css -->
-<link rel="icon" href="./assets/favicon.png"> <!-- Import 'Favorites Icon' – favicon.png -->
-<script type="module" src="main.js"></script> <!-- Load the main script. Must be type="module". Have only one of these -->
+<!doctype html>
+<html lang="en-gb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backgammon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="default.css">
+</head>
+<body>
+
+  <header>
+    <h1>Backgammon</h1>
+    <p class="subtitle">Classic 2-player board game</p>
+  </header>
+
+  <!-- HUD: player info and turn indicator -->
+  <section id="hud" aria-label="Game status">
+    <div class="player-panel" id="p1-panel" aria-label="Player 1 info">
+      <span class="player-label">&#9675; Player 1</span>
+      <span class="score-value" id="p1-borne-off" aria-live="polite">0 off</span>
+    </div>
+    <div id="turn-banner" aria-live="polite">
+      <span id="turn-text">Player 1's Turn</span>
+    </div>
+    <div class="player-panel" id="p2-panel" aria-label="Player 2 info">
+      <span class="player-label">&#9679; Player 2</span>
+      <span class="score-value" id="p2-borne-off" aria-live="polite">0 off</span>
+    </div>
+  </section>
+
+  <!-- Controls: dice, roll/end button, hint, new game -->
+  <div id="controls" role="toolbar" aria-label="Game controls">
+    <div id="dice-display" aria-label="Dice" aria-live="polite"></div>
+    <button id="action-btn" type="button">Roll Dice</button>
+    <button id="hint-btn"   type="button">Hint</button>
+    <button id="new-game-btn" type="button">New Game</button>
+  </div>
+
+  <!-- Message area -->
+  <p id="message" aria-live="polite" aria-atomic="true"></p>
+
+  <!--
+    Board layout (point numbers, 1-based):
+    TOP ROW:    13 14 15 16 17 18 | BAR | 19 20 21 22 23 24
+                ---------------------------------------------------
+    BOTTOM ROW: 12 11 10  9  8  7 |     |  6  5  4  3  2  1
+
+    P1 (white, circles) moves 24 to 1  (index decreases)
+    P2 (black, circles) moves  1 to 24 (index increases)
+  -->
+  <div id="board-wrapper" role="region" aria-label="Backgammon board">
+
+    <!-- Top bear-off area (P2 bears off here) -->
+    <div class="bearoff-row">
+      <div class="bearoff-area" id="bearoff-p2-area" aria-label="Player 2 borne off">
+        <span>&#9679; Borne off</span>
+        <div class="pieces" id="bearoff-p2-pieces"></div>
+      </div>
+      <div style="flex:1"></div>
+    </div>
+
+    <!--
+      Main board grid:
+        columns: [6 points] [bar] [6 points]
+        rows:    top-row / bottom-row
+      The bar column spans both rows so it is full height.
+    -->
+    <div id="board-main">
+
+      <!-- Top row left half: points 13-18 (indices 12-17) -->
+      <div class="board-half top-row" id="top-left"></div>
+
+      <!-- Bar — spans both top and bottom rows -->
+      <div id="bar-zone" aria-label="Bar" role="group">
+        <!-- P2 pieces enter/exit at top; P1 pieces at bottom -->
+        <div class="bar-section" id="bar-p2" role="button" tabindex="0"
+             aria-label="Player 2 bar — click to select bar piece">
+          <div class="bar-label">&#9679; Bar</div>
+          <div id="bar-p2-pieces"></div>
+        </div>
+        <div class="bar-divider"></div>
+        <div class="bar-section" id="bar-p1" role="button" tabindex="0"
+             aria-label="Player 1 bar — click to select bar piece">
+          <div id="bar-p1-pieces"></div>
+          <div class="bar-label">&#9675; Bar</div>
+        </div>
+      </div>
+
+      <!-- Top row right half: points 19-24 (indices 18-23) -->
+      <div class="board-half top-row" id="top-right"></div>
+
+      <!-- Bottom row left half: points 12-7 (indices 11-6) -->
+      <div class="board-half bottom-row" id="bot-left"></div>
+
+      <!-- Bottom row right half: points 6-1 (indices 5-0) -->
+      <div class="board-half bottom-row" id="bot-right"></div>
+
+    </div>
+
+    <!-- Bottom bear-off area (P1 bears off here) -->
+    <div class="bearoff-row">
+      <div style="flex:1"></div>
+      <div class="bearoff-area" id="bearoff-p1-area" aria-label="Player 1 borne off">
+        <span>&#9675; Borne off</span>
+        <div class="pieces" id="bearoff-p1-pieces"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Dice roll overlay — shown at the start of each player's turn -->
+  <div id="dice-overlay" aria-live="assertive" aria-label="Dice roll result">
+    <div id="dice-overlay-inner">
+      <div id="dice-overlay-player"></div>
+      <div id="dice-overlay-dice"></div>
+      <p id="dice-overlay-hint">Click anywhere to continue</p>
+    </div>
+  </div>
+
+  <!-- End game modal -->
+  <dialog id="end-modal" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-content">
+      <p id="modal-emoji" class="modal-emoji"></p>
+      <h2 id="modal-title"></h2>
+      <p id="modal-message"></p>
+      <button id="play-again-btn" type="button">Play Again</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
