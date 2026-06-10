@@ -2,15 +2,18 @@
   "name": "computing-2-submission",
   "type": "module",
   "version": "1.0.0",
-  "description": "",
-  "main": "web-app/Module.js",
-  "author": "",
+  "description": "Backgammon Game for Computing 2 Applications 2025/26",
+  "main": "web-app/Backgammon.js",
+  "author": "Chiara Foschi",
   "license": "ISC",
+  "scripts": {
+    "test": "mocha"
+  },
   "dependencies": {
-    "ramda": "^0.32.0"
+    "ramda": "^0.30.1"
   },
   "devDependencies": {
     "docdash": "^2.0.2",
-    "mocha": "^11.7.5"
+    "mocha": "^11.1.0"
   }
 }
