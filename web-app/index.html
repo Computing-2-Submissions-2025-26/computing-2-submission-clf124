@@ -16,6 +16,8 @@
     <p class="subtitle">Classic 2-player board game</p>
   </header>
 
+  <main>
+
   <!-- HUD: player info and turn indicator -->
   <section id="hud" aria-label="Game status">
     <div class="player-panel" id="p1-panel" aria-label="Player 1 info">
@@ -73,17 +75,17 @@
       <!-- Top row left half: points 13-18 (indices 12-17) -->
       <div class="board-half top-row" id="top-left"></div>
 
-      <!-- Bar — spans both top and bottom rows -->
+      <!-- Bar - spans both top and bottom rows -->
       <div id="bar-zone" aria-label="Bar" role="group">
         <!-- P2 pieces enter/exit at top; P1 pieces at bottom -->
         <div class="bar-section" id="bar-p2" role="button" tabindex="0"
-             aria-label="Player 2 bar — click to select bar piece">
+             aria-label="Player 2 bar: click to select bar piece">
           <div class="bar-label">&#9679; Bar</div>
           <div id="bar-p2-pieces"></div>
         </div>
         <div class="bar-divider"></div>
         <div class="bar-section" id="bar-p1" role="button" tabindex="0"
-             aria-label="Player 1 bar — click to select bar piece">
+             aria-label="Player 1 bar: click to select bar piece">
           <div id="bar-p1-pieces"></div>
           <div class="bar-label">&#9675; Bar</div>
         </div>
@@ -111,7 +113,9 @@
 
   </div>
 
-  <!-- Dice roll overlay — shown at the start of each player's turn -->
+  </main>
+
+  <!-- Dice roll overlay - shown at the start of each player's turn -->
   <div id="dice-overlay" aria-live="assertive" aria-label="Dice roll result">
     <div id="dice-overlay-inner">
       <div id="dice-overlay-player"></div>
