@@ -7,7 +7,7 @@ const die_face = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 
 const player_tokens = ["○", "●"];
 
-// DOM references
+// DOM refernces
 const dice_display_el = document.getElementById("dice-display");
 const action_btn_el = document.getElementById("action-btn");
 const hint_btn_el = document.getElementById("hint-btn");
@@ -210,7 +210,9 @@ const render = function () {
     action_btn_el.textContent = (
         state.phase === "gameover" ? "Game Over" : "End Turn"
     );
-    action_btn_el.disabled = state.phase === "gameover";
+    action_btn_el.disabled = (
+        state.phase === "gameover" || !Backgammon.can_end_turn(state)
+    );
 
     render_board();
     if (state.phase === "gameover" || Backgammon.is_ended(state)) {
