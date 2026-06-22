@@ -54,8 +54,8 @@ const throw_if_invalid = function (game) {
 
     [0, 1].forEach(function (player) {
         const on_board = R.pipe(
-            R.filter((pt) => pt.owner === player),
-            R.reduce((sum, pt) => sum + pt.count, 0)
+            R.filter(function (pt) { return pt.owner === player; }),
+            R.reduce(function (sum, pt) { return sum + pt.count; }, 0)
         )(game.points);
         const total = on_board + game.bar[player] + game.borneOff[player];
         if (total !== Backgammon.checker_count) {
@@ -105,17 +105,17 @@ describe("New game", function () {
             );
         }
         const all_valid = game.dice.every(
-            (d) => Number.isInteger(d) && d >= 1 && d <= 6
+            function (d) { return Number.isInteger(d) && d >= 1 && d <= 6; }
         );
         if (!all_valid) {
-            throw new Error("Dice values out of range 1–6: " + game.dice);
+            throw new Error("Dice values out of range 1-6: " + game.dice);
         }
     });
 });
 
 describe("Dice", function () {
     it("Rolling doubles produces four identical values", function () {
-        // rand always returns 0 → die = 1, so both dice are 1 → doubles
+        // rand always returns 0 so die = 1, giving doubles
         const result = Backgammon.roll_dice(() => 0);
         if (result.length !== 4 || !result.every((d) => d === result[0])) {
             throw new Error(
@@ -125,9 +125,11 @@ describe("Dice", function () {
     });
 
     it("Non-doubles produce exactly two different values", function () {
-        // First call → die 1, second call → die 2
+        // First call gives die 1, second call gives die 2
         let call = 0;
-        const result = Backgammon.roll_dice(() => (call++ === 0 ? 0 : 1 / 6));
+        const result = Backgammon.roll_dice(
+            () => (call++ === 0 ? 0 : 1 / 6)
+        );
         if (result.length !== 2) {
             throw new Error(
                 "Expected exactly two values for non-doubles, got: " + result
@@ -142,7 +144,7 @@ describe("Legal moves", function () {
 when legal moves are requested,
 then only bar-entry moves are returned.`,
         function () {
-            // Player 0 stuck on bar — only bar entry should be available
+            // Player 0 stuck on bar, only bar entry moves should appear
             const game = Object.assign(
                 Backgammon.new_game(() => 0.5),
                 {
@@ -219,27 +221,30 @@ then each resulting state is valid and has one fewer die remaining.`,
 
 describe("Making moves", function () {
     it("Hitting an opponent blot sends their piece to the bar", function () {
-        // Minimal board: P1 has 2 at index 23, P2 has a blot at 20
-        const pts = R.map(() => ({ owner: null, count: 0 }), R.range(0, 24));
-        pts[23] = { owner: 0, count: 2 };   // P1: 2 pieces
-        pts[20] = { owner: 1, count: 1 };   // P2: lone blot (target)
-        pts[0]  = { owner: 1, count: 14 };  // P2: remaining 14 pieces
+        // Minimal board: P0 has 2 at index 23, P1 has a lone blot at 20
+        const pts = R.map(
+            function () { return {owner: null, count: 0}; },
+            R.range(0, 24)
+        );
+        pts[23] = {owner: 0, count: 2};   // P0: 2 pieces
+        pts[20] = {owner: 1, count: 1};   // P1: lone blot (target)
+        pts[0]  = {owner: 1, count: 14};  // P1: remaining 14 pieces
         const game = Object.assign(
             Backgammon.new_game(() => 0.5),
             {
                 points: pts,
                 bar: [0, 0],
-                borneOff: [13, 0],  // P1 has 13 borne off; total = 15
+                borneOff: [13, 0],  // P0 has 13 borne off; total = 15
                 dice: [3],
                 currentPlayer: 0,
                 phase: "moving",
             }
         );
-        const next = Backgammon.make_move({ from: 23, to: 20 }, game);
+        const next = Backgammon.make_move({from: 23, to: 20}, game);
         throw_if_invalid(next);
         if (next.bar[1] !== 1) {
             throw new Error(
-                "Hitting a blot should send one P2 piece to the bar. " +
+                "Hitting a blot should send one P1 piece to the bar. " +
                 "bar[1] = " + next.bar[1]
             );
         }
@@ -250,6 +255,45 @@ describe("Making moves", function () {
             );
         }
     });
+
+    it(
+        `Given a piece on the bar,
+when a bar-entry move is applied,
+then the piece leaves the bar and lands on the board.`,
+        function () {
+            // P0 has 1 on bar and 14 at index 23; die 3 enters at index 21
+            const pts = R.map(
+                function () { return {owner: null, count: 0}; },
+                R.range(0, 24)
+            );
+            pts[23] = {owner: 0, count: 14};
+            pts[0]  = {owner: 1, count: 15};
+            const game = Object.assign(
+                Backgammon.new_game(() => 0.5),
+                {
+                    points: pts,
+                    bar: [1, 0],
+                    borneOff: [0, 0],
+                    dice: [3],
+                    currentPlayer: 0,
+                    phase: "moving",
+                }
+            );
+            const next = Backgammon.make_move({from: "bar", to: 21}, game);
+            throw_if_invalid(next);
+            if (next.bar[0] !== 0) {
+                throw new Error(
+                    "Bar count should be 0 after entry, got: " + next.bar[0]
+                );
+            }
+            if (next.points[21].owner !== 0 || next.points[21].count !== 1) {
+                throw new Error(
+                    "Piece should be at index 21 after bar entry: " +
+                    JSON.stringify(next.points[21])
+                );
+            }
+        }
+    );
 
     it(
         "end_turn switches the active player and provides fresh dice",
@@ -308,25 +352,25 @@ describe("Bearing off", function () {
 when a piece is borne off,
 the borne-off count increases and the board count decreases.`,
         function () {
-            // P1 last piece at index 2 (point 3), P2 already finished
+            // P0 last piece at index 2; P1 still has all 15 pieces on board
             const pts = R.map(
-                () => ({ owner: null, count: 0 }),
+                function () { return {owner: null, count: 0}; },
                 R.range(0, 24)
             );
-            pts[2] = { owner: 0, count: 1 };
+            pts[2]  = {owner: 0, count: 1};
+            pts[23] = {owner: 1, count: 15};
             const game = Object.assign(
                 Backgammon.new_game(() => 0.5),
                 {
                     points: pts,
                     bar: [0, 0],
-                    // P1: 14 borne off + 1 on board = 15; P2: all borne off
-                    borneOff: [14, 15],
+                    borneOff: [14, 0],  // P0: 14 borne off + 1 on board = 15
                     dice: [3],
                     currentPlayer: 0,
                     phase: "moving",
                 }
             );
-            const next = Backgammon.make_move({ from: 2, to: "bearoff" }, game);
+            const next = Backgammon.make_move({from: 2, to: "bearoff"}, game);
             throw_if_invalid(next);
             if (next.borneOff[0] !== 15) {
                 throw new Error(
@@ -342,4 +386,159 @@ the borne-off count increases and the board count decreases.`,
             }
         }
     );
+
+    it(
+        `Given pieces at two home-board positions,
+when the die overshoots the furthest-back piece,
+then only the piece with no piece further back may bear off.`,
+        function () {
+            // P0 has pieces at index 0 (closest to edge) and index 2
+            // Die 4 overshoots both; only index 2 can legally bear off
+            const pts = R.map(
+                function () { return {owner: null, count: 0}; },
+                R.range(0, 24)
+            );
+            pts[0]  = {owner: 0, count: 1};
+            pts[2]  = {owner: 0, count: 1};
+            pts[23] = {owner: 1, count: 15};
+            const game = Object.assign(
+                Backgammon.new_game(() => 0.5),
+                {
+                    points: pts,
+                    bar: [0, 0],
+                    borneOff: [13, 0],  // P0: 13 off + 2 on board = 15
+                    dice: [4],
+                    currentPlayer: 0,
+                    phase: "moving",
+                }
+            );
+            const moves = Backgammon.legal_moves(game);
+            const bear_from_0 = moves.some(
+                (m) => m.from === 0 && m.to === "bearoff"
+            );
+            const bear_from_2 = moves.some(
+                (m) => m.from === 2 && m.to === "bearoff"
+            );
+            if (bear_from_0) {
+                throw new Error(
+                    "Should not be able to overshoot from index 0 when " +
+                    "a piece at index 2 is further from the edge"
+                );
+            }
+            if (!bear_from_2) {
+                throw new Error(
+                    "Should be able to bear off from index 2 with die 4 " +
+                    "since no piece sits further from the edge"
+                );
+            }
+        }
+    );
+});
+
+describe("Bearing off eligibility", function () {
+    it(
+        `Given all pieces inside the home board with none on the bar,
+when can_bear_off is called,
+then it returns true.`,
+        function () {
+            const pts = R.map(
+                function () { return {owner: null, count: 0}; },
+                R.range(0, 24)
+            );
+            pts[0]  = {owner: 0, count: 5};
+            pts[1]  = {owner: 0, count: 5};
+            pts[2]  = {owner: 0, count: 5};
+            pts[23] = {owner: 1, count: 15};
+            const game = Object.assign(
+                Backgammon.new_game(() => 0.5),
+                {
+                    points: pts,
+                    bar: [0, 0],
+                    borneOff: [0, 0],
+                    currentPlayer: 0,
+                }
+            );
+            if (!Backgammon.can_bear_off(0, game)) {
+                throw new Error(
+                    "Expected can_bear_off to return true when all " +
+                    "pieces are in the home board: " + display_game(game)
+                );
+            }
+        }
+    );
+
+    it(
+        `Given a piece waiting on the bar,
+when can_bear_off is called,
+then it returns false.`,
+        function () {
+            const game = Object.assign(
+                Backgammon.new_game(() => 0.5),
+                {bar: [1, 0]}
+            );
+            if (Backgammon.can_bear_off(0, game)) {
+                throw new Error(
+                    "Expected can_bear_off to return false when a piece " +
+                    "is on the bar: " + display_game(game)
+                );
+            }
+        }
+    );
+});
+
+describe("Select from", function () {
+    it(
+        "Selecting the same source twice clears the selection",
+        function () {
+            const game = Backgammon.new_game(() => 0.5);
+            const selected = Backgammon.select_from(5, game);
+            if (selected.selectedFrom !== 5) {
+                throw new Error(
+                    "Expected selectedFrom to be 5 after first click, " +
+                    "got: " + selected.selectedFrom
+                );
+            }
+            const deselected = Backgammon.select_from(5, selected);
+            if (deselected.selectedFrom !== null) {
+                throw new Error(
+                    "Expected selectedFrom to be null after clicking the " +
+                    "same source again, got: " + deselected.selectedFrom
+                );
+            }
+        }
+    );
+});
+
+describe("Hint", function () {
+    it("Hint returns a legal move when moves are available", function () {
+        const game = Backgammon.new_game(() => 0.5);
+        const h = Backgammon.hint(game);
+        if (h === null) {
+            throw new Error(
+                "Expected a hint move at the start of the game, got null"
+            );
+        }
+        const legal = Backgammon.legal_moves(game);
+        const is_legal = legal.some(
+            (m) => m.from === h.from && m.to === h.to
+        );
+        if (!is_legal) {
+            throw new Error(
+                "Hint returned a move not found in legal_moves: " +
+                JSON.stringify(h)
+            );
+        }
+    });
+
+    it("Hint returns null when no moves are available", function () {
+        const game = Object.assign(
+            Backgammon.new_game(() => 0.5),
+            {dice: []}
+        );
+        if (Backgammon.hint(game) !== null) {
+            throw new Error(
+                "Expected hint to return null when dice are empty"
+            );
+        }
+    });
 });
