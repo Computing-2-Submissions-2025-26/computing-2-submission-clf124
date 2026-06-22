@@ -25,8 +25,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px;
-    gap: 12px;
+    padding: 10px 16px;
+    gap: 8px;
 }
 
 header { text-align: center; }
@@ -45,7 +45,7 @@ header .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    max-width: 900px;
+    max-width: 1200px;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -102,26 +102,28 @@ header .subtitle { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
 
 button {
     cursor: pointer;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 20px;
+    border: 2px solid #3d1a00;
+    border-radius: 4px;
+    padding: 10px 22px;
     font-size: 0.95rem;
     font-weight: 700;
+    font-family: "Times New Roman", Times, serif;
+    letter-spacing: 0.04em;
 }
 button:hover    { opacity: 0.85; }
 button:active   { opacity: 0.7; }
 button:disabled { opacity: 0.35; cursor: not-allowed; }
 button:focus-visible { outline: 2px solid var(--highlight-sel); outline-offset: 3px; }
-#action-btn   { background: #1f4e79; color: var(--text-main); }
-#hint-btn     { background: #5a0d3a; color: var(--text-main); }
-#new-game-btn { background: #1a3e20; color: var(--text-main); }
+#action-btn   { background: #5c3010; color: var(--text-main); }
+#hint-btn     { background: #6b3a18; color: var(--text-main); }
+#new-game-btn { background: #4a2508; color: var(--text-main); }
 
 #board-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 960px;
+    max-width: 1200px;
     background: var(--bg-board);
     border: 6px solid var(--bg-body);
     border-radius: 10px;
@@ -220,7 +222,7 @@ button:focus-visible { outline: 2px solid var(--highlight-sel); outline-offset: 
     border-radius: 3px;
     position: relative;
     padding: 2px 1px;
-    min-height: 140px;
+    min-height: 180px;
     background: transparent;
 }
 .point-cell::before {
@@ -273,7 +275,7 @@ button:focus-visible { outline: 2px solid var(--highlight-sel); outline-offset: 
 .bottom-row .checker-stack { flex-direction: column-reverse; margin-top: auto; }
 
 .checker {
-    width: 30px; height: 30px;
+    width: 36px; height: 36px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -323,6 +325,23 @@ button:focus-visible { outline: 2px solid var(--highlight-sel); outline-offset: 
     justify-content: center;
     border: 2px solid #c8a878;
 }
+.overlay-die.rolling {
+    animation: die-roll 0.12s ease-in-out infinite;
+}
+.overlay-die.landed {
+    animation: die-land 0.35s ease-out forwards;
+}
+@keyframes die-roll {
+    0%   { transform: rotate(-8deg) scale(1.05); }
+    50%  { transform: rotate(8deg)  scale(0.95); }
+    100% { transform: rotate(-8deg) scale(1.05); }
+}
+@keyframes die-land {
+    0%   { transform: scale(1.4) rotate(0deg); }
+    55%  { transform: scale(0.88); }
+    80%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
 #dice-overlay-hint { font-size: 0.85rem; color: var(--text-dim); }
 
 #message { color: var(--highlight-hint); font-weight: 600; text-align: center; min-height: 1.4em; }
@@ -341,7 +360,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); }
 .modal-emoji { font-size: 3rem; margin-bottom: 10px; }
 dialog h2    { font-size: 1.8rem; margin-bottom: 8px; color: #d4924a; }
 dialog p     { font-size: 1rem; color: var(--text-dim); margin-bottom: 22px; }
-#play-again-btn { background: #1a3e20; color: var(--text-main); padding: 12px 32px; font-size: 1rem; }
+#play-again-btn { background: #4a2508; color: var(--text-main); padding: 12px 32px; font-size: 1rem; }
 
 @media (max-width: 600px) {
     .checker    { width: 22px; height: 22px; font-size: 0.65rem; }
