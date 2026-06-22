@@ -43,20 +43,43 @@ const show_dice_overlay = function (player, dice) {
         );
         dice_overlay_player_el.textContent = `Player ${player + 1} rolls…`;
         dice_overlay_dice_el.innerHTML = "";
-        dice.forEach(function (d) {
+
+        // build die elements, start with random faces while rolling
+        const die_els = dice.map(function (final_val) {
             const div = document.createElement("div");
-            div.className = "overlay-die";
-            div.textContent = die_face[d - 1];
-            div.setAttribute("aria-label", `Die: ${d}`);
+            div.className = "overlay-die rolling";
+            div.textContent = die_face[Math.floor(Math.random() * 6)];
+            div.setAttribute("aria-label", `Die: ${final_val}`);
             dice_overlay_dice_el.appendChild(div);
+            return {el: div, final: final_val};
         });
+
         dice_overlay_el.classList.add("visible");
+
+        // rapidly cycle through random faces to simulate tumbling
+        const roll_interval = setInterval(function () {
+            die_els.forEach(function (item) {
+                item.el.textContent = die_face[Math.floor(Math.random() * 6)];
+            });
+        }, 80);
+
+        // after 900ms settle on the real values
+        setTimeout(function () {
+            clearInterval(roll_interval);
+            die_els.forEach(function (item) {
+                item.el.classList.remove("rolling");
+                item.el.classList.add("landed");
+                item.el.textContent = die_face[item.final - 1];
+            });
+        }, 900);
+
         const dismiss = function () {
+            clearInterval(roll_interval);
             dice_overlay_el.classList.remove("visible");
             resolve();
         };
         dice_overlay_el.onclick = dismiss;
-        setTimeout(dismiss, 2200);
+        setTimeout(dismiss, 2800);
     });
 };
 
