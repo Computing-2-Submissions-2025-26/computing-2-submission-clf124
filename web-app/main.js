@@ -54,6 +54,7 @@ const show_dice_overlay = function (player, dice) {
             return {el: div, final: final_val};
         });
 
+        dice_display_el.style.visibility = "hidden";
         dice_overlay_el.classList.add("visible");
 
         // rapidly cycle through random faces to simulate tumbling
@@ -61,9 +62,9 @@ const show_dice_overlay = function (player, dice) {
             die_els.forEach(function (item) {
                 item.el.textContent = die_face[Math.floor(Math.random() * 6)];
             });
-        }, 80);
+        }, 100);
 
-        // after 900ms settle on the real values
+        // after 1000ms settle on the real values
         setTimeout(function () {
             clearInterval(roll_interval);
             die_els.forEach(function (item) {
@@ -71,11 +72,12 @@ const show_dice_overlay = function (player, dice) {
                 item.el.classList.add("landed");
                 item.el.textContent = die_face[item.final - 1];
             });
-        }, 900);
+        }, 1000);
 
         const dismiss = function () {
             clearInterval(roll_interval);
             dice_overlay_el.classList.remove("visible");
+            dice_display_el.style.visibility = "visible";
             resolve();
         };
         dice_overlay_el.onclick = dismiss;
