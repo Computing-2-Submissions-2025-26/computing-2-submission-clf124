@@ -1,3 +1,4 @@
+/*jslint*/
 import R from "./ramda.js";
 
 /**
@@ -65,17 +66,19 @@ Backgammon.checker_count = 15;
  * @constant {Point[]}
  */
 Backgammon.initial_board = (function () {
-    const pts = R.map(() => ({ owner: null, count: 0 }), R.range(0, 24));
+    const pts = R.map(function () {
+        return {owner: null, count: 0};
+    }, R.range(0, 24));
 
-    pts[23] = { owner: 0, count: 2 };
-    pts[12] = { owner: 0, count: 5 };
-    pts[7] = { owner: 0, count: 3 };
-    pts[5] = { owner: 0, count: 5 };
+    pts[23] = {owner: 0, count: 2};
+    pts[12] = {owner: 0, count: 5};
+    pts[7]  = {owner: 0, count: 3};
+    pts[5]  = {owner: 0, count: 5};
 
-    pts[0] = { owner: 1, count: 2 };
-    pts[11] = { owner: 1, count: 5 };
-    pts[16] = { owner: 1, count: 3 };
-    pts[18] = { owner: 1, count: 5 };
+    pts[0]  = {owner: 1, count: 2};
+    pts[11] = {owner: 1, count: 5};
+    pts[16] = {owner: 1, count: 3};
+    pts[18] = {owner: 1, count: 5};
 
     return Object.freeze(pts);
 }());
@@ -134,14 +137,15 @@ Backgammon.can_bear_off = function (player, game) {
     if (game.bar[player] > 0) {
         return false;
     }
-    const home_start = player === 0 ? 0 : 18;
-    const home_end = player === 0 ? 6 : 24;
-    const outside_home = [
-        ...R.range(0, home_start),
-        ...R.range(home_end, Backgammon.point_count)
-    ];
+    const home_start = (player === 0 ? 0 : 18);
+    const home_end   = (player === 0 ? 6 : 24);
+    const outside_home = R.range(0, home_start).concat(
+        R.range(home_end, Backgammon.point_count)
+    );
     return !R.any(
-        (i) => game.points[i].owner === player && game.points[i].count > 0,
+        function (i) {
+            return game.points[i].owner === player && game.points[i].count > 0;
+        },
         outside_home
     );
 };
@@ -155,7 +159,10 @@ Backgammon.can_bear_off = function (player, game) {
  * @returns {boolean}
  */
 Backgammon.is_ended = function (game) {
-    return R.any((n) => n === Backgammon.checker_count, game.borneOff);
+    return R.any(
+        function (n) { return n === Backgammon.checker_count; },
+        game.borneOff
+    );
 };
 
 /**
@@ -171,14 +178,18 @@ Backgammon.winner = function (game) {
     return null;
 };
 
-// helper: checks if there's a piece further from the bearing-off edge
-// (needed for overshoot rule)
+// helper: checks if theres a piece futher from the bearing-off edge
+// within the home board (needed for the overshoot rule)
 const has_piece_further_back = function (player, from_index, game) {
-    const inner_range = player === 0
+    const inner_range = (
+        player === 0
         ? R.range(from_index + 1, 6)
-        : R.range(18, from_index);
+        : R.range(18, from_index)
+    );
     return R.any(
-        (i) => game.points[i].owner === player && game.points[i].count > 0,
+        function (i) {
+            return game.points[i].owner === player && game.points[i].count > 0;
+        },
         inner_range
     );
 };
@@ -194,7 +205,7 @@ const has_piece_further_back = function (player, from_index, game) {
  */
 Backgammon.legal_moves_from = function (from, game) {
     const player = game.currentPlayer;
-    const dir = player === 0 ? -1 : 1;
+    const dir    = (player === 0 ? -1 : 1);
 
     if (from === "bar") {
         if (game.bar[player] === 0) { return []; }
@@ -206,20 +217,26 @@ Backgammon.legal_moves_from = function (from, game) {
     const seen = new Set();
 
     const try_die = function (acc, d) {
-        const to_index = from === "bar"
+        const to_index = (
+            from === "bar"
             ? (player === 0 ? 24 - d : d - 1)
-            : from + dir * d;
+            : from + dir * d
+        );
 
         const falls_off = (
-            player === 0 ? to_index < 0 : to_index >= Backgammon.point_count
+            player === 0
+            ? to_index < 0
+            : to_index >= Backgammon.point_count
         );
 
         // piece would move off the board, check if bear-off is valid
         if (falls_off) {
             if (!Backgammon.can_bear_off(player, game)) { return acc; }
-            const needed = player === 0
+            const needed = (
+                player === 0
                 ? Number(from) + 1
-                : Backgammon.point_count - Number(from);
+                : Backgammon.point_count - Number(from)
+            );
             if (
                 d !== needed &&
                 has_piece_further_back(player, Number(from), game)
@@ -228,21 +245,25 @@ Backgammon.legal_moves_from = function (from, game) {
             }
             if (seen.has("bearoff")) { return acc; }
             seen.add("bearoff");
-            return [...acc, { from, to: "bearoff" }];
+            return acc.concat([{from, to: "bearoff"}]);
         }
 
         if (to_index < 0 || to_index >= Backgammon.point_count) { return acc; }
 
         const dest = game.points[to_index];
-        if (dest.owner !== null && dest.owner !== player && dest.count >= 2) {
+        if (
+            dest.owner !== null &&
+            dest.owner !== player &&
+            dest.count >= 2
+        ) {
             return acc;
         }
         if (seen.has(to_index)) { return acc; }
         seen.add(to_index);
-        return [...acc, { from, to: to_index }];
+        return acc.concat([{from, to: to_index}]);
     };
 
-    return R.reduce(try_die, [], [...new Set(game.dice)]);
+    return R.reduce(try_die, [], Array.from(new Set(game.dice)));
 };
 
 /**
@@ -263,11 +284,16 @@ Backgammon.legal_moves = function (game) {
     }
 
     const sources = R.filter(
-        (i) => game.points[i].owner === player && game.points[i].count > 0,
+        function (i) {
+            return game.points[i].owner === player && game.points[i].count > 0;
+        },
         R.range(0, Backgammon.point_count)
     );
 
-    return R.chain((i) => Backgammon.legal_moves_from(i, game), sources);
+    return R.chain(
+        function (i) { return Backgammon.legal_moves_from(i, game); },
+        sources
+    );
 };
 
 /**
@@ -281,37 +307,40 @@ Backgammon.legal_moves = function (game) {
  * @returns {GameState} New state after the move.
  */
 Backgammon.make_move = function (move, game) {
-    const { from, to } = move;
+    const {from, to} = move;
     const player = game.currentPlayer;
-    const opp = 1 - player;
+    const opp    = 1 - player;
 
-    const points = game.points.map(
+    const points   = game.points.map(
         function (p) { return Object.assign({}, p); }
     );
-    const bar = [...game.bar];
-    const borneOff = [...game.borneOff];
+    const bar      = game.bar.slice();
+    const borneOff = game.borneOff.slice();
 
     // figure out which die value this move uses
     let die_used;
     if (from === "bar") {
-        die_used = player === 0 ? 24 - Number(to) : Number(to) + 1;
+        die_used = (player === 0 ? 24 - Number(to) : Number(to) + 1);
     } else if (to === "bearoff") {
         const needed = (
             player === 0
             ? Number(from) + 1
             : Backgammon.point_count - Number(from)
         );
-        const eligible = R.filter((d) => d >= needed, game.dice);
+        const eligible = R.filter(
+            function (d) { return d >= needed; },
+            game.dice
+        );
         die_used = (
             eligible.length > 0
-            ? Math.min(...eligible)
-            : Math.min(...game.dice)
+            ? Math.min.apply(null, eligible)
+            : Math.min.apply(null, game.dice)
         );
     } else {
         die_used = Math.abs(Number(to) - Number(from));
     }
 
-    const dice = [...game.dice];
+    const dice    = game.dice.slice();
     const die_idx = dice.indexOf(die_used);
     if (die_idx !== -1) { dice.splice(die_idx, 1); }
 
@@ -319,7 +348,7 @@ Backgammon.make_move = function (move, game) {
         bar[player] -= 1;
     } else {
         const n = points[Number(from)].count - 1;
-        points[Number(from)] = { owner: n === 0 ? null : player, count: n };
+        points[Number(from)] = {owner: (n === 0 ? null : player), count: n};
     }
 
     if (to === "bearoff") {
@@ -328,9 +357,9 @@ Backgammon.make_move = function (move, game) {
         const t = Number(to);
         if (points[t].owner === opp && points[t].count === 1) {
             bar[opp] += 1;
-            points[t] = { owner: player, count: 1 };
+            points[t] = {owner: player, count: 1};
         } else {
-            points[t] = { owner: player, count: points[t].count + 1 };
+            points[t] = {owner: player, count: points[t].count + 1};
         }
     }
 
@@ -343,7 +372,7 @@ Backgammon.make_move = function (move, game) {
     });
 
     if (borneOff[player] === Backgammon.checker_count) {
-        return Object.assign({}, next, { phase: "gameover", winner: player });
+        return Object.assign({}, next, {phase: "gameover", winner: player});
     }
     return next;
 };
@@ -368,6 +397,21 @@ Backgammon.end_turn = function (rand, game) {
 };
 
 /**
+ * Returns true when the current player may legally end their turn.
+ * Backgammon rules require a player to use as many dice as possible,
+ * so this returns false while any legal move remains available.
+ * @memberof Backgammon
+ * @function
+ * @param {GameState} game - Current game state.
+ * @returns {boolean}
+ */
+Backgammon.can_end_turn = function (game) {
+    if (game.phase === "gameover") { return false; }
+    if (game.dice.length === 0) { return true; }
+    return Backgammon.legal_moves(game).length === 0;
+};
+
+/**
  * Toggles the selected source in the game state.
  * Clicking the same source twice clears the selection.
  * @memberof Backgammon
@@ -378,9 +422,7 @@ Backgammon.end_turn = function (rand, game) {
  */
 Backgammon.select_from = function (from, game) {
     return Object.assign({}, game, {
-        selectedFrom: (
-            game.selectedFrom === from ? null : from
-        )
+        selectedFrom: (game.selectedFrom === from ? null : from)
     });
 };
 
@@ -392,11 +434,11 @@ Backgammon.select_from = function (from, game) {
  * @param {GameState} game
  * @returns {Move|null}
  */
-Backgammon.hint = function (game) {
-    const moves = Backgammon.legal_moves(game);
-    return (
-        moves.length > 0 ? moves[0] : null
-    );
-};
+Backgammon.hint = R.pipe(
+    Backgammon.legal_moves,
+    function (moves) {
+        return (moves.length > 0 ? moves[0] : null);
+    }
+);
 
 export default Object.freeze(Backgammon);
