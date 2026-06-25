@@ -1,7 +1,8 @@
+/*global describe, it*/
 import Backgammon from "../Backgammon.js";
 import R from "../ramda.js";
 
-// Renders a compact summary of a game state for use inside error messages.
+// Renders a compact summary of a game state for error messages.
 const display_game = function (game) {
     return JSON.stringify({
         player: game.currentPlayer,
@@ -15,8 +16,8 @@ const display_game = function (game) {
  * Returns if the game state is valid.
  * A state is valid if all the following are true:
  * - There are exactly 24 points.
- * - Each point has a valid owner (null, 0, or 1) and a non-negative count.
- * - Each player has exactly 15 pieces in total (board + bar + borne-off).
+ * - Each point has a valid owner (null, 0, or 1) and non-negative count.
+ * - Each player has exactly 15 pieces (board + bar + borne-off).
  * - No point holds pieces belonging to both players simultaneously.
  * - The phase is either "moving" or "gameover".
  * @memberof Backgammon.test
@@ -25,9 +26,10 @@ const display_game = function (game) {
  * @throws if the state fails any of the above conditions.
  */
 const throw_if_invalid = function (game) {
+    const state = display_game(game);
     if (!Array.isArray(game.points) || game.points.length !== 24) {
         throw new Error(
-            "The board must have exactly 24 points: " + display_game(game)
+            `The board must have exactly 24 points: ${state}`
         );
     }
 
@@ -35,19 +37,17 @@ const throw_if_invalid = function (game) {
     game.points.forEach(function (pt, i) {
         if (!valid_owners.includes(pt.owner)) {
             throw new Error(
-                "Point " + i + " has an invalid owner (" + pt.owner + "): " +
-                display_game(game)
+                `Point ${i} has an invalid owner (${pt.owner}): ${state}`
             );
         }
         if (pt.count < 0 || !Number.isInteger(pt.count)) {
             throw new Error(
-                "Point " + i + " has an invalid count (" + pt.count + "): " +
-                display_game(game)
+                `Point ${i} has an invalid count (${pt.count}): ${state}`
             );
         }
         if (pt.owner === null && pt.count > 0) {
             throw new Error(
-                "Point " + i + " has pieces but no owner: " + display_game(game)
+                `Point ${i} has pieces but no owner: ${state}`
             );
         }
     });
@@ -59,15 +59,16 @@ const throw_if_invalid = function (game) {
         )(game.points);
         const total = on_board + game.bar[player] + game.borneOff[player];
         if (total !== Backgammon.checker_count) {
+            const exp = Backgammon.checker_count;
+            const pieces_err = `expected ${exp}: ${state}`;
             throw new Error(
-                "Player " + player + " has " + total + " pieces, expected " +
-                Backgammon.checker_count + ": " + display_game(game)
+                `Player ${player} has ${total} pieces, ${pieces_err}`
             );
         }
     });
 
     if (game.phase !== "moving" && game.phase !== "gameover") {
-        throw new Error("Unrecognised phase: " + game.phase);
+        throw new Error(`Unrecognised phase: ${game.phase}`);
     }
 };
 
@@ -78,16 +79,15 @@ describe("New game", function () {
 
     it("A new game is not ended and has no winner", function () {
         const game = Backgammon.new_game(() => 0.5);
+        const state = display_game(game);
         if (Backgammon.is_ended(game)) {
             throw new Error(
-                "A freshly started game should not be ended: " +
-                display_game(game)
+                `A freshly started game should not be ended: ${state}`
             );
         }
         if (Backgammon.winner(game) !== null) {
             throw new Error(
-                "A freshly started game should have no winner: " +
-                display_game(game)
+                `A freshly started game should have no winner: ${state}`
             );
         }
     });
@@ -96,19 +96,19 @@ describe("New game", function () {
         const game = Backgammon.new_game(() => 0.5);
         if (game.currentPlayer !== 0) {
             throw new Error(
-                "Player 0 should move first, got player: " + game.currentPlayer
+                `Player 0 should move first, got player: ${game.currentPlayer}`
             );
         }
         if (game.dice.length !== 2 && game.dice.length !== 4) {
             throw new Error(
-                "New game should start with 2 or 4 dice, got: " + game.dice
+                `New game should start with 2 or 4 dice, got: ${game.dice}`
             );
         }
         const all_valid = game.dice.every(
             function (d) { return Number.isInteger(d) && d >= 1 && d <= 6; }
         );
         if (!all_valid) {
-            throw new Error("Dice values out of range 1-6: " + game.dice);
+            throw new Error(`Dice values out of range 1-6: ${game.dice}`);
         }
     });
 });
@@ -119,7 +119,7 @@ describe("Dice", function () {
         const result = Backgammon.roll_dice(() => 0);
         if (result.length !== 4 || !result.every((d) => d === result[0])) {
             throw new Error(
-                "Expected four identical values for doubles, got: " + result
+                `Expected four identical values for doubles, got: ${result}`
             );
         }
     });
@@ -127,12 +127,14 @@ describe("Dice", function () {
     it("Non-doubles produce exactly two different values", function () {
         // First call gives die 1, second call gives die 2
         let call = 0;
-        const result = Backgammon.roll_dice(
-            () => (call++ === 0 ? 0 : 1 / 6)
-        );
+        const result = Backgammon.roll_dice(function () {
+            const c = call;
+            call += 1;
+            return (c === 0 ? 0 : 1 / 6);
+        });
         if (result.length !== 2) {
             throw new Error(
-                "Expected exactly two values for non-doubles, got: " + result
+                `Expected exactly two values for non-doubles, got: ${result}`
             );
         }
     });
@@ -144,7 +146,7 @@ describe("Legal moves", function () {
 when legal moves are requested,
 then only bar-entry moves are returned.`,
         function () {
-            // Player 0 stuck on bar, only bar entry moves should appear
+            // Player 0 stuck on bar; only bar entry moves should appear
             const game = Object.assign(
                 Backgammon.new_game(() => 0.5),
                 {
@@ -160,9 +162,10 @@ then only bar-entry moves are returned.`,
             const moves = Backgammon.legal_moves(game);
             const all_from_bar = moves.every((m) => m.from === "bar");
             if (!all_from_bar) {
+                const got = JSON.stringify(moves);
+                const bar_end = `should start from 'bar'. Got: ${got}`;
                 throw new Error(
-                    "With a piece on the bar, all moves should start " +
-                    "from 'bar'. Got: " + JSON.stringify(moves)
+                    `With a piece on the bar, all moves ${bar_end}`
                 );
             }
         }
@@ -173,16 +176,15 @@ then only bar-entry moves are returned.`,
 when every legal move is applied,
 then each resulting state is valid and has one fewer die remaining.`,
         function () {
+            let alt = 0;
             const starting_games = [
-                Backgammon.new_game(() => 1 / 6),   // dice [2, 2, 2, 2]
-                Backgammon.new_game(() => 0),         // dice [1, 1, 1, 1]
-                (function () {
-                    let i = 0;
-                    // alternates: die 1, die 3
-                    return Backgammon.new_game(
-                        () => (i++ % 2 === 0 ? 0 : 2 / 6)
-                    );
-                }())
+                Backgammon.new_game(() => 1 / 6),
+                Backgammon.new_game(() => 0),
+                Backgammon.new_game(function () {
+                    const mod = alt % 2;
+                    alt += 1;
+                    return (mod === 0 ? 0 : 2 / 6);
+                })
             ];
 
             starting_games.forEach(function (game) {
@@ -193,11 +195,11 @@ then each resulting state is valid and has one fewer die remaining.`,
                     const next = Backgammon.make_move(move, game);
                     throw_if_invalid(next);
                     if (next.dice.length !== game.dice.length - 1) {
-                        throw new Error(
-                            "Expected one fewer die after a move. Before: " +
-                            game.dice + ", after: " + next.dice +
-                            ". Move: " + JSON.stringify(move)
-                        );
+                        const b = game.dice;
+                        const a = next.dice;
+                        const m = JSON.stringify(move);
+                        const msg = `Before: ${b}, after: ${a}. Move: ${m}`;
+                        throw new Error(`Expected one fewer die. ${msg}`);
                     }
                 });
             });
@@ -210,10 +212,10 @@ then each resulting state is valid and has one fewer die remaining.`,
             {dice: []}
         );
         const moves = Backgammon.legal_moves(game);
+        const got = JSON.stringify(moves);
         if (moves.length !== 0) {
             throw new Error(
-                "Expected no moves with empty dice, got: " +
-                JSON.stringify(moves)
+                `Expected no moves with empty dice, got: ${got}`
             );
         }
     });
@@ -243,15 +245,15 @@ describe("Making moves", function () {
         const next = Backgammon.make_move({from: 23, to: 20}, game);
         throw_if_invalid(next);
         if (next.bar[1] !== 1) {
+            const b = next.bar[1];
             throw new Error(
-                "Hitting a blot should send one P1 piece to the bar. " +
-                "bar[1] = " + next.bar[1]
+                `Hitting a blot should send P1 to the bar. bar[1] = ${b}`
             );
         }
         if (next.points[20].owner !== 0 || next.points[20].count !== 1) {
+            const pt_20 = JSON.stringify(next.points[20]);
             throw new Error(
-                "The hitting piece should now occupy the point: " +
-                JSON.stringify(next.points[20])
+                `The hitting piece should now occupy the point: ${pt_20}`
             );
         }
     });
@@ -283,13 +285,13 @@ then the piece leaves the bar and lands on the board.`,
             throw_if_invalid(next);
             if (next.bar[0] !== 0) {
                 throw new Error(
-                    "Bar count should be 0 after entry, got: " + next.bar[0]
+                    `Bar count should be 0 after entry, got: ${next.bar[0]}`
                 );
             }
             if (next.points[21].owner !== 0 || next.points[21].count !== 1) {
+                const pt_21 = JSON.stringify(next.points[21]);
                 throw new Error(
-                    "Piece should be at index 21 after bar entry: " +
-                    JSON.stringify(next.points[21])
+                    `Piece should be at index 21 after bar entry: ${pt_21}`
                 );
             }
         }
@@ -302,14 +304,14 @@ then the piece leaves the bar and lands on the board.`,
             const after = Backgammon.end_turn(() => 0, game);
             throw_if_invalid(after);
             if (after.currentPlayer === game.currentPlayer) {
+                const cp = game.currentPlayer;
                 throw new Error(
-                    "end_turn should switch the active player from " +
-                    game.currentPlayer + " but it stayed the same."
+                    `end_turn should switch from player ${cp} but it stayed.`
                 );
             }
             if (after.dice.length < 2) {
                 throw new Error(
-                    "end_turn should roll fresh dice, got: " + after.dice
+                    `end_turn should roll fresh dice, got: ${after.dice}`
                 );
             }
         }
@@ -332,16 +334,16 @@ describe("Bearing off", function () {
                     winner: 0,
                 }
             );
+            const state = display_game(game);
             if (!Backgammon.is_ended(game)) {
                 throw new Error(
-                    "A game with 15 pieces borne off should be ended: " +
-                    display_game(game)
+                    `A game with 15 pieces borne off should be ended: ${state}`
                 );
             }
             if (Backgammon.winner(game) !== 0) {
+                const winner = Backgammon.winner(game);
                 throw new Error(
-                    "Player 0 should be the winner, got: " +
-                    Backgammon.winner(game)
+                    `Player 0 should be the winner, got: ${winner}`
                 );
             }
         }
@@ -373,15 +375,15 @@ the borne-off count increases and the board count decreases.`,
             const next = Backgammon.make_move({from: 2, to: "bearoff"}, game);
             throw_if_invalid(next);
             if (next.borneOff[0] !== 15) {
+                const off = next.borneOff[0];
                 throw new Error(
-                    "Expected 15 pieces borne off after the last move, got: " +
-                    next.borneOff[0]
+                    `Expected 15 pieces borne off after last move, got: ${off}`
                 );
             }
             if (next.phase !== "gameover") {
+                const ph = next.phase;
                 throw new Error(
-                    "Bearing off the last piece should end the game, " +
-                    "phase was: " + next.phase
+                    `Bearing off the last piece should end game, phase: ${ph}`
                 );
             }
         }
@@ -421,14 +423,12 @@ then only the piece with no piece further back may bear off.`,
             );
             if (bear_from_0) {
                 throw new Error(
-                    "Should not be able to overshoot from index 0 when " +
-                    "a piece at index 2 is further from the edge"
+                    "Index 0 should not overshoot when index 2 is further back"
                 );
             }
             if (!bear_from_2) {
                 throw new Error(
-                    "Should be able to bear off from index 2 with die 4 " +
-                    "since no piece sits further from the edge"
+                    "Index 2 should be able to bear off with die 4"
                 );
             }
         }
@@ -459,9 +459,9 @@ then it returns true.`,
                 }
             );
             if (!Backgammon.can_bear_off(0, game)) {
+                const state = display_game(game);
                 throw new Error(
-                    "Expected can_bear_off to return true when all " +
-                    "pieces are in the home board: " + display_game(game)
+                    `can_bear_off should be true: all in home board. ${state}`
                 );
             }
         }
@@ -477,9 +477,9 @@ then it returns false.`,
                 {bar: [1, 0]}
             );
             if (Backgammon.can_bear_off(0, game)) {
+                const state = display_game(game);
                 throw new Error(
-                    "Expected can_bear_off to return false when a piece " +
-                    "is on the bar: " + display_game(game)
+                    `can_bear_off should be false: piece on the bar. ${state}`
                 );
             }
         }
@@ -493,16 +493,16 @@ describe("Select from", function () {
             const game = Backgammon.new_game(() => 0.5);
             const selected = Backgammon.select_from(5, game);
             if (selected.selectedFrom !== 5) {
+                const sf = selected.selectedFrom;
                 throw new Error(
-                    "Expected selectedFrom to be 5 after first click, " +
-                    "got: " + selected.selectedFrom
+                    `selectedFrom should be 5 after first click, got: ${sf}`
                 );
             }
             const deselected = Backgammon.select_from(5, selected);
             if (deselected.selectedFrom !== null) {
+                const dsf = deselected.selectedFrom;
                 throw new Error(
-                    "Expected selectedFrom to be null after clicking the " +
-                    "same source again, got: " + deselected.selectedFrom
+                    `selectedFrom should be null after deselect, got: ${dsf}`
                 );
             }
         }
@@ -523,9 +523,9 @@ describe("Hint", function () {
             (m) => m.from === h.from && m.to === h.to
         );
         if (!is_legal) {
+            const h_str = JSON.stringify(h);
             throw new Error(
-                "Hint returned a move not found in legal_moves: " +
-                JSON.stringify(h)
+                `Hint returned a move not found in legal_moves: ${h_str}`
             );
         }
     });
