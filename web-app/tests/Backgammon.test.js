@@ -1,4 +1,3 @@
-/*global describe, it*/
 import Backgammon from "../Backgammon.js";
 import R from "../ramda.js";
 
